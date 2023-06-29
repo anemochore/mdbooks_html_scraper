@@ -31,12 +31,34 @@
         as[j].setAttribute('href', '#' + firstId);
       }
     });
+
+    //***add ferris text
+    const fMap = {
+      does_not_compile: '1. 컴파일되지 않는 코드',
+      panics: '2. 패닉이 발생하는 코드',
+      not_desired_behavior: '3. 의도대로 작동하지 않는 코드'
+    };
+    for([key, value] of Object.entries(fMap)) {
+      const codes = [...main.querySelectorAll(`code.${key}`)];
+      codes.forEach(code => {
+        const newNode = document.createElement('p');
+        newNode.className = 'ts-memo';
+        newNode.textContent = `***조판메모: ${value}`;
+        code.parentNode.insertBefore(newNode, code)
+      });
+    }
   });
 
   //needed styles
   let style = `  <style>
-    .boring { display: none; }
     img { max-width: 100%; }
+
+    .boring { display: none; }
+
+    code.language-console, code.language-powershell, code.language-cmd {
+      font-weight: bold;
+    }
+
     table {
       border-collapse: collapse;
     }
@@ -46,8 +68,10 @@
   </style>
 `;
 
-  //ferris
+  //***ferris
   style += `  <style>
+    .ts-memo { background-color: yellow; color: blue; }
+
     code.does_not_compile     { background-image: url(img/ferris/does_not_compile.svg); }
     code.panics               { background-image: url(img/ferris/panics.svg); }
     code.not_desired_behavior { background-image: url(img/ferris/not_desired_behavior.svg); }
