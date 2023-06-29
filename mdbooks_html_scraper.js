@@ -14,27 +14,67 @@
   const mains = await fetchAllWithSelector(filenames, origin, 'div#content>main');
   console.log(`fetched ${mains.filter(el => el).length} htmls.`);
 
-  //numbering
+  //post-processing (3단계 제목까지만 파일이 바뀐다고 가정)
   mains.forEach((main, i) => {
-    const firstTitle = main.querySelector('h1, h2, h3');
+    //numbering
+    const firstTitle = main.querySelector('h1, h2, h3');  //get first header
     if(nos[i] && firstTitle.innerText == titles[i])
       firstTitle.innerHTML = nos[i] + ' ' + firstTitle.innerHTML;
+
+    //fix inter-links
+    const as = [...main.querySelectorAll('a')];
+    const hrefs = as.map(el => el.getAttribute('href'));
+    hrefs.forEach((href, j) => {
+      if(filenames.includes(href)) {
+        const targetIdx = filenames.indexOf(href);
+        const firstId = mains[targetIdx].querySelector('h1, h2, h3').id;
+        as[j].setAttribute('href', '#' + firstId);
+      }
+    });
   });
+
+  //needed styles
+  let style = `  <style>
+    .boring { display: none; }
+    img { max-width: 100%; }
+    table {
+      border-collapse: collapse;
+    }
+    th, td {
+      border: solid 1px;
+    }
+  </style>
+`;
+
+  //ferris
+  style += `  <style>
+    code.does_not_compile     { background-image: url(img/ferris/does_not_compile.svg); }
+    code.panics               { background-image: url(img/ferris/panics.svg); }
+    code.not_desired_behavior { background-image: url(img/ferris/not_desired_behavior.svg); }
+
+    code.does_not_compile, code.panics, code.not_desired_behavior {
+      display: block;
+      background-size: 72px;
+      background-position: right 5px top 30px;
+      background-repeat: no-repeat;
+    }
+  </style>
+`;
 
   //merge without <main>
   const merged =  `<head>
   <meta charset="utf-8">
-  <style>
-  .boring { display: none; }
-  </style>
-</head>
-<body>` + '\n' + mains.map(el => el.innerHTML).join('\n') + '\n  </body>\n</html>';
+` + style + `</head>
+<body>
+` + mains.map(el => el.innerHTML).join('\n') + '\n  </body>\n</html>';
 
   //d/l it
   const fileLink = document.createElement('a');
   fileLink.href = 'data:text/html;charset=UTF-8,' + encodeURIComponent(merged);
   fileLink.download = 'import_me_to_word.html';
   fileLink.click();
+
+  //end
 
 
   async function fetchAllWithSelector(filenames, urlPrefix, selector, corsProxy = '') {
