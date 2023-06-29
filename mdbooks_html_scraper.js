@@ -1,4 +1,6 @@
 (async () => {
+  //run on, eg, https://github.com/rust-kr/doc.rust-kr.org/
+
   const sidebarOl = document.querySelector('nav#sidebar ol');
   const as = [...sidebarOl.querySelectorAll('li>a')];
   const [filenames, titles, nos] = [
@@ -8,8 +10,8 @@
   ];
 
   console.log(`fetching ${filenames.length} htmls...`);
-  const origin = location.origin + '/' + location.pathname.split('/')[1] + '/',
-        mains = await fetchAllWithSelector(filenames, origin, 'div#content>main');
+  const origin = location.origin + '/' + location.pathname.split('/')[1] + '/';
+  const mains = await fetchAllWithSelector(filenames, origin, 'div#content>main');
   console.log(`fetched ${mains.filter(el => el).length} htmls.`);
 
   //numbering
@@ -23,17 +25,17 @@
   const merged =  `<head>
   <meta charset="utf-8">
   <style>
-  .hide-boring .boring { display: none; }
+  .boring { display: none; }
   </style>
 </head>
 <body>` + '\n' + mains.map(el => el.innerHTML).join('\n') + '\n  </body>\n</html>';
-
 
   //d/l it
   const fileLink = document.createElement('a');
   fileLink.href = 'data:text/html;charset=UTF-8,' + encodeURIComponent(merged);
   fileLink.download = 'import_me_to_word.html';
   fileLink.click();
+
 
   async function fetchAllWithSelector(filenames, urlPrefix, selector, corsProxy = '') {
     //assuming all files are unique and html
