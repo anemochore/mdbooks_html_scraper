@@ -41,7 +41,10 @@
         //if href is like 'chxx.html#id', strip filename.
         const filename = href.split('#');
         as[j].href = '#' + filename.pop();
-        as[j].setAttribute('fallback-href', '#' + filename.pop());
+
+        const fallback = filename.pop();
+        if(fallback)
+          as[j].setAttribute('fallback-href', '#' + fallback);
       }
     });
 
@@ -57,17 +60,22 @@
         const newNode = document.createElement('p');
         newNode.className = 'ts-memo';
         newNode.textContent = `***조판메모: ${value}`;
-        code.parentNode.insertBefore(newNode, code)
+        code.parentNode.insertBefore(newNode, code);
       });
     }
   });
 
   //needed styles
   let style = `  <style>
-    img { max-width: 100%; }
+    a.header, a:not([href^="#"]) { text-decoration: none; }
+    .with-page { color: green; font-weight: bold; }
+
+    img { max-width: 500px; }
 
     .boring { display: none; }
-    code.language-console, code.language-powershell, code.language-cmd { font-weight: bold; }
+    p.codeblock { background-color: palegreen; }
+    p.terminal { background-color: lightgray; }
+    :not(p[class])>code:not([class]) { font-family: Consolas; background-color: aliceblue; }
 
     table { border-collapse: collapse; }
     th, td { border: solid 1px; }
@@ -99,12 +107,31 @@
 ` + mains.map((el, i) => `<section id="${filenames[i]}">
 ${el.innerHTML.trim()}
 </section>`)
-.join('\n') + '\n  </body>\n</html>';
+.join('\n') + '  </body>\n</html>';
 
+  //start additional post-processing (mostly for later use in word)
+  merged = new DOMParser().parseFromString(merged, 'text/html');
+
+  //set pre class
+  [...merged.querySelectorAll('pre>code[class^="language"]')].forEach(code => {
+    const pre = code.parentNode;
+    const lang = code.classList[0].split('-').pop();  //assuming language-xxx is the first classname
+
+    const newNode = document.createElement('p');  //pre is not working in word.
+    newNode.className = 'ts-memo';
+    newNode.textContent = `***조판메모: ${value}`;
+    code.parentNode.insertBefore(newNode, code)
+    
+    if(lang == 'console' || lang == 'text' || lang == 'powershell' || lang == 'cmd')
+      newNode.className = 'terminal';  //css is not applied in word. idk...
+    else
+      newNode.className = 'codeblock';
+
+    pre.insertBefore(newNode, code);
+  });
 
   //***temp. fix 2***
   //try to fix wrong english (original) inter-links (2/2)
-  merged = new DOMParser().parseFromString(merged, 'text/html');
   const aBookmarks = [...merged.querySelectorAll('a[href^="#"]')];
 
   //fix of fix. 잘못 url-인코딩된 id를 다시 디코드
@@ -139,6 +166,8 @@ ${el.innerHTML.trim()}
     }
     aWithBrokenLinks[i].href = '#' + targetId;
   });
+
+  //end of additional post-processing
   merged = merged.documentElement.outerHTML;
 
 
