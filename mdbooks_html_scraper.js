@@ -16,29 +16,42 @@
 
   //post-processing (3단계 제목까지만 파일이 바뀐다고 가정)
   mains.forEach((main, i) => {
+    //***temp. fix 1***
+    //fix wrong english (original) inter-links (1/2)
+    const elWithIds = [...main.querySelectorAll('[id]')];
+    elWithIds.forEach((el, j) => {
+      if(el.innerText != '')  //잘못된 a도 꽤 남아 있음(원서의 a를 지웠어야 했는데 안 지웠다든가).
+        elWithIds[j].setAttribute('title', el.textContent.replaceAll('\n', ' '));
+    });
+
     //numbering
     const firstTitle = main.querySelector('h1, h2, h3');  //get first header
     if(nos[i] && firstTitle.innerText == titles[i])
       firstTitle.innerHTML = nos[i] + ' ' + firstTitle.innerHTML;
 
-    //fix inter-links
+    //modify inter-links
     const as = [...main.querySelectorAll('a')];
     const hrefs = as.map(el => el.getAttribute('href'));
     hrefs.forEach((href, j) => {
       if(filenames.includes(href)) {
-        const targetIdx = filenames.indexOf(href);
-        const firstId = mains[targetIdx].querySelector('h1, h2, h3').id;
-        as[j].setAttribute('href', '#' + firstId);
+        //if href is like 'chxx.html'
+        as[j].href = '#' + href;
+      }
+      else if(href?.includes('#') && !href.startsWith('.') && as[j]?.href.startsWith(location.origin)) {
+        //if href is like 'chxx.html#id', strip filename.
+        const filename = href.split('#');
+        as[j].href = '#' + filename.pop();
+        as[j].setAttribute('fallback-href', '#' + filename.pop());
       }
     });
 
     //***add ferris text
-    const fMap = {
+    const ferrisClassMap = {
       does_not_compile: '1. 컴파일되지 않는 코드',
       panics: '2. 패닉이 발생하는 코드',
       not_desired_behavior: '3. 의도대로 작동하지 않는 코드'
     };
-    for([key, value] of Object.entries(fMap)) {
+    for([key, value] of Object.entries(ferrisClassMap)) {
       const codes = [...main.querySelectorAll(`code.${key}`)];
       codes.forEach(code => {
         const newNode = document.createElement('p');
@@ -54,17 +67,10 @@
     img { max-width: 100%; }
 
     .boring { display: none; }
+    code.language-console, code.language-powershell, code.language-cmd { font-weight: bold; }
 
-    code.language-console, code.language-powershell, code.language-cmd {
-      font-weight: bold;
-    }
-
-    table {
-      border-collapse: collapse;
-    }
-    th, td {
-      border: solid 1px;
-    }
+    table { border-collapse: collapse; }
+    th, td { border: solid 1px; }
   </style>
 `;
 
@@ -86,11 +92,55 @@
 `;
 
   //merge without <main>
-  const merged =  `<head>
+  let merged =  `<head>
   <meta charset="utf-8">
 ` + style + `</head>
 <body>
-` + mains.map(el => el.innerHTML).join('\n') + '\n  </body>\n</html>';
+` + mains.map((el, i) => `<section id="${filenames[i]}">
+${el.innerHTML.trim()}
+</section>`)
+.join('\n') + '\n  </body>\n</html>';
+
+
+  //***temp. fix 2***
+  //try to fix wrong english (original) inter-links (2/2)
+  merged = new DOMParser().parseFromString(merged, 'text/html');
+  const aBookmarks = [...merged.querySelectorAll('a[href^="#"]')];
+
+  //fix of fix. 잘못 url-인코딩된 id를 다시 디코드
+  aBookmarks.forEach(a => {
+    const href = a.getAttribute('href');
+    if(href.slice(1).match(/%[A-Z0-9][A-Z0-9]/)) {  //대충 판별
+      const newHref = decodeURIComponent(href);
+      console.debug(`fixed href of ${a.innerHTML} on ${a.closest('section').id}: ${href} -> ${newHref}`);
+      a.href = newHref;
+    }
+  });
+
+  const aWithBrokenLinks = aBookmarks.filter(el => !merged.querySelector(`[id="${el.getAttribute('href').slice(1)}"]`));
+  aWithBrokenLinks.forEach((a, i) => {
+    const href = a.getAttribute('href');
+    const filename = a.closest('section').id;  //for debug
+
+    let targetEl = merged.querySelector(`[title="${a.textContent.replaceAll('\n', ' ').replace(/^‘/, '').replace(/’$/, '')}"]`);
+    let targetId = targetEl?.id;
+
+    if(targetEl) {
+      console.debug(`fixed (based on text) href of ${a.innerHTML} on ${filename}: ${href} -> #${targetId}`);
+      aWithBrokenLinks[i].href = '#' + targetId;
+    }
+    else {
+      targetEl = merged.querySelector(`[id="${a.getAttribute('fallback-href').slice(1)}"]`);
+      targetId = targetEl?.id;
+      console.warn(`fixed (possibly wrongly) href of ${a.innerHTML} on ${filename}: ${href} -> #${targetId}`);
+      aWithBrokenLinks[i].setAttribute('not-found-org-href', href);
+      aWithBrokenLinks[i].removeAttribute('fallback-href');
+      aWithBrokenLinks[i].href = '#' + targetId;
+    }
+    aWithBrokenLinks[i].href = '#' + targetId;
+  });
+  merged = merged.documentElement.outerHTML;
+
 
   //d/l it
   const fileLink = document.createElement('a');
@@ -100,6 +150,19 @@
 
   //end
 
+  function getParentEl(div, parentTagToSearch) {
+    //for debug
+    const MAX_BACKTRACKING_NUMBER = 10;
+
+    for(let i = 0; i < MAX_BACKTRACKING_NUMBER; i++) {
+      if(!div) break;
+
+      if(div.tagName == parentTagToSearch) return div;
+
+      div = div.parentNode;
+    }
+    return null;
+  }
 
   async function fetchAllWithSelector(filenames, urlPrefix, selector, corsProxy = '') {
     //assuming all files are unique and html
