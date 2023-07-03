@@ -30,14 +30,18 @@
       firstTitle.innerHTML = nos[i] + ' ' + firstTitle.innerHTML;
 
     //modify inter-links
-    const as = [...main.querySelectorAll('a')];
+    const as = [...main.querySelectorAll('a[href]')];
     const hrefs = as.map(el => el.getAttribute('href'));
     hrefs.forEach((href, j) => {
-      if(filenames.includes(href)) {
+      if(href.startsWith('.')) {
+        //상대주소는 절대주소로.
+        as[j].href = as[j].href;  //.href returns calculated url (getAttribute(href) does not)
+      }
+      else if(filenames.includes(href)) {
         //if href is like 'chxx.html'
         as[j].href = '#' + href;
       }
-      else if(href?.includes('#') && !href.startsWith('.') && as[j]?.href.startsWith(location.origin)) {
+      else if(href.includes('#') && as[j].href.startsWith(location.origin)) {
         //if href is like 'chxx.html#id', strip filename.
         const filename = href.split('#');
         as[j].href = '#' + filename.pop();
@@ -65,7 +69,7 @@
     }
   });
 
-  //needed styles
+  //needed styles. 'lightgray'는 워드에서 인식 못 함...ㅋ
   let style = `  <style>
     a.header, a:not([href^="#"]) { text-decoration: none; }
     .with-page { color: green; font-weight: bold; }
@@ -74,7 +78,7 @@
 
     .boring { display: none; }
     p.codeblock { background-color: palegreen; }
-    p.terminal { background-color: lightgray; }
+    p.terminal { background-color: lightblue; }
     :not(p[class])>code:not([class]) { font-family: Consolas; background-color: aliceblue; }
 
     table { border-collapse: collapse; }
@@ -117,17 +121,13 @@ ${el.innerHTML.trim()}
     const pre = code.parentNode;
     const lang = code.classList[0].split('-').pop();  //assuming language-xxx is the first classname
 
-    const newNode = document.createElement('p');  //pre is not working in word.
-    newNode.className = 'ts-memo';
-    newNode.textContent = `***조판메모: ${value}`;
-    code.parentNode.insertBefore(newNode, code)
-    
+    const p = document.createElement('p');  //pre is ignored in word.
+    pre.appendChild(p);
+    p.appendChild(code);
     if(lang == 'console' || lang == 'text' || lang == 'powershell' || lang == 'cmd')
-      newNode.className = 'terminal';  //css is not applied in word. idk...
+      p.className = 'terminal';
     else
-      newNode.className = 'codeblock';
-
-    pre.insertBefore(newNode, code);
+      p.className = 'codeblock';
   });
 
   //***temp. fix 2***
@@ -172,26 +172,17 @@ ${el.innerHTML.trim()}
 
 
   //d/l it
-  const fileLink = document.createElement('a');
-  fileLink.href = 'data:text/html;charset=UTF-8,' + encodeURIComponent(merged);
-  fileLink.download = 'import_me_to_word.html';
-  fileLink.click();
+  downloadAndEnd(merged);
 
-  //end
 
-  function getParentEl(div, parentTagToSearch) {
-    //for debug
-    const MAX_BACKTRACKING_NUMBER = 10;
 
-    for(let i = 0; i < MAX_BACKTRACKING_NUMBER; i++) {
-      if(!div) break;
-
-      if(div.tagName == parentTagToSearch) return div;
-
-      div = div.parentNode;
-    }
-    return null;
+  function downloadAndEnd(merged) {
+    const fileLink = document.createElement('a');
+    fileLink.href = 'data:text/html;charset=UTF-8,' + encodeURIComponent(merged);
+    fileLink.download = 'import_me_to_word.html';
+    fileLink.click();
   }
+
 
   async function fetchAllWithSelector(filenames, urlPrefix, selector, corsProxy = '') {
     //assuming all files are unique and html
