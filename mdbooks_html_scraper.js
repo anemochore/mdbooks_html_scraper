@@ -154,7 +154,6 @@ ${el.innerHTML.trim()}
 
     if(targetEl) {
       console.debug(`fixed (based on text) href of ${a.innerHTML} on ${filename}: ${href} -> #${targetId}`);
-      aWithBrokenLinks[i].href = '#' + targetId;
     }
     else {
       targetEl = merged.querySelector(`[id="${a.getAttribute('fallback-href').slice(1)}"]`);
@@ -162,7 +161,6 @@ ${el.innerHTML.trim()}
       console.warn(`fixed (possibly wrongly) href of ${a.innerHTML} on ${filename}: ${href} -> #${targetId}`);
       aWithBrokenLinks[i].setAttribute('not-found-org-href', href);
       aWithBrokenLinks[i].removeAttribute('fallback-href');
-      aWithBrokenLinks[i].href = '#' + targetId;
     }
     aWithBrokenLinks[i].href = '#' + targetId;
   });
@@ -198,6 +196,7 @@ ${el.innerHTML.trim()}
 
 
     async function fetchOne_(filename) {
+      //proxy for cors was not needed.
       const url = corsProxy + urlPrefix + filename;
       const response = await fetch(url);  //omitted try-catch
 
