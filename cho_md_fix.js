@@ -16,6 +16,7 @@ function handleFileSelect(e) {
     reader.onload = (e) => {
       console.log(file.name);
       q.set(file.name, converter.makeHtml(makeFootnotes(fixx(reader.result), i)));
+      //q.set(file.name, makeFootnotes(fixx(reader.result), i));
       if(q.size == fileNumber) downloadAndQuit();
     }
     reader.readAsText(file);
@@ -27,6 +28,7 @@ function fixx(str) {
   const DICTS = new Map();
 
   //animal pics
+  DICTS.set('<img align="left" height=100px ', '<img align="left" ');
   DICTS.set('../images/icon_tip_or_suggestion.png',  'css/@tip.jpg');
   DICTS.set('../images/icon_warning_or_caution.png', 'css/@warning.jpg');
   DICTS.set('../images/icon_general_note.png',       'css/@warning.jpg');
@@ -36,7 +38,8 @@ function fixx(str) {
   DICTS.set(/\.\.\/images\/figure_([0-9][0-9])_([0-9][0-9])\.png/g, `assets/${BOOK_NAME}_$1$2.png`);
 
   //terminal
-  DICTS.set(/```console\n(.+?)\n```/gs, '<*터미널시작*>\n```console\n$1\n```\n<*터미널끝*>');
+  DICTS.set(/^> ```console\n(.+?)\n> ```$/gsm, '> <*터미널시작*>\n> ```console\n$1\n> ```\n> <*터미널끝*>');
+  DICTS.set(/^```console\n(.+?)\n```$/gsm, '<*터미널시작*>\n```console\n$1\n```\n<*터미널끝*>');
 
   //remove invisible spaces
   DICTS.set('\u200b', '');
@@ -110,6 +113,7 @@ function downloadAndQuit() {
   <meta charset="utf-8" />
   <style>
   img { max-width: 500px; }
+  p:has(img[align]) { margin: 20px; display: table; }
 
   pre>code:not(.language-console) { background-color: palegreen; }
   code.language-console { background-color: lightblue; }
