@@ -113,7 +113,8 @@ function downloadAndQuit() {
   <meta charset="utf-8" />
   <style>
   img { max-width: 500px; }
-  p:has(img[align]) { margin: 20px; display: table; }
+  aside { margin: 20px; min-height: 90px; border: green solid thin; }
+  aside>table td { border: 0; padding: 10px; font-size: 90%; }
 
   pre>code:not(.language-console) { background-color: palegreen; }
   code.language-console { background-color: lightblue; }
@@ -126,23 +127,36 @@ function downloadAndQuit() {
 <body>
 `;
 
+  //merge
   for(const el of arr) {
     //zip.file(filename, value);
     newHtml = newHtml + `<section id=${el[0]}>\n${el[1]}\n</section>\n`;
   }
   newHtml = newHtml + `</body></html>`;
 
-  const fileName = `all.html`;
-  /*
-  zip.generateAsync({type: "blob"})
-  .then(blob => {
-  */
-  const blob = new Blob([newHtml], {type: "data:attachment/text"});
+  //post-fix for asides... 정말 이렇게까지 하고 싶진 않았다...
+  const doc = new DOMParser().parseFromString(newHtml, 'text/html');
+  const ps = [...doc.querySelectorAll('p:has(img[align])')];  //not working in FF
+  for(const p of ps) {
+    //텍스트와 코드 사이 구분이 안 되므로 <br>을 넣어준다-_-
+    [...p.childNodes].forEach(textNode => {
+      if(textNode.data && textNode.data.includes('\n\n')) {
+        textNode.parentNode.insertBefore(document.createElement('br'), textNode.nextSibling);
+      }
+    });
 
-    const fileLink = document.createElement('a');
-    fileLink.href = window.URL.createObjectURL(blob);
-    fileLink.download = fileName;
-    fileLink.click();
-  //});
+    const leftImage = p.querySelector('img');
+    const newInnerHTML = p.innerHTML.replace(leftImage.outerHTML, '');
+    p.outerHTML = `<aside><table><tr><td>${leftImage.outerHTML}</td><td>${newInnerHTML}</td></tr></table></aside>`;
+  }
+  newHtml = doc.documentElement.outerHTML;
+
+  //download
+  const fileName = `all.html`;
+  const blob = new Blob([newHtml], {type: "data:attachment/text"});
+  const fileLink = document.createElement('a');
+  fileLink.href = window.URL.createObjectURL(blob);
+  fileLink.download = fileName;
+  fileLink.click();
 }
 
