@@ -27,12 +27,6 @@ function fixx(str) {
   //dicts (source => target). insertion order is important. keys should be a global regexp (or a string).
   const DICTS = new Map();
 
-  //animal pics
-  DICTS.set('<img align="left" height=100px ', '<img align="left" ');
-  DICTS.set('../images/icon_tip_or_suggestion.png',  'css/@tip.jpg');
-  DICTS.set('../images/icon_warning_or_caution.png', 'css/@warning.jpg');
-  DICTS.set('../images/icon_general_note.png',       'css/@warning.jpg');
-
   //images
   const BOOK_NAME = 'clru';  //set as needed
   DICTS.set(/\.\.\/images\/figure_([0-9][0-9])_([0-9][0-9])\.png/g, `assets/${BOOK_NAME}_$1$2.png`);
@@ -113,8 +107,6 @@ function downloadAndQuit() {
   <meta charset="utf-8" />
   <style>
   img { max-width: 500px; }
-  aside { margin: 20px; min-height: 90px; border: green solid thin; }
-  aside>table td { border: 0; padding: 10px; font-size: 90%; }
 
   pre>code:not(.language-console) { background-color: palegreen; }
   code.language-console { background-color: lightblue; }
@@ -133,25 +125,54 @@ function downloadAndQuit() {
     newHtml = newHtml + `<section id=${el[0]}>\n${el[1]}\n</section>\n`;
   }
   newHtml = newHtml + `</body></html>`;
+  const doc = new DOMParser().parseFromString(newHtml, 'text/html');
 
   //post-fix for asides... 정말 이렇게까지 하고 싶진 않았다...
-  const doc = new DOMParser().parseFromString(newHtml, 'text/html');
   const ps = [...doc.querySelectorAll('p:has(img[align])')];  //not working in FF
   for(const p of ps) {
     //텍스트와 코드 사이 구분이 안 되므로 <br>을 넣어준다-_-
     [...p.childNodes].forEach(textNode => {
       if(textNode.data && textNode.data.includes('\n\n')) {
         textNode.parentNode.insertBefore(document.createElement('br'), textNode.nextSibling);
+        console.debug('fixed new-line in', p);
       }
     });
 
-    const leftImage = p.querySelector('img');
-    const newInnerHTML = p.innerHTML.replace(leftImage.outerHTML, '');
-    p.outerHTML = `<aside><table><tr><td>${leftImage.outerHTML}</td><td>${newInnerHTML}</td></tr></table></aside>`;
+    //const leftImage = p.querySelector('img');
+    //const newInnerHTML = p.innerHTML.replace(leftImage.outerHTML, '');
+    p.outerHTML = `<hr><aside>${p.innerHTML}</aside><hr>`;
   }
-  newHtml = doc.documentElement.outerHTML;
+
+  //animal pics (어차피 html 후처리하니까 이런 것도 그냥 여기서)
+  const imgs = [...doc.querySelectorAll('img')];
+  for(const img of imgs) {
+    if(img.getAttribute('align'))  img.removeAttribute('align');
+    if(img.getAttribute('height')) img.removeAttribute('height');
+
+    const oldSrc = img.getAttribute('src');
+    const newSrc = oldSrc
+    .replace('../images/icon_tip_or_suggestion.png',  'https://anemochore.github.io/oreillyDownloader/css/@tip.jpg')
+    .replace('../images/icon_warning_or_caution.png', 'https://anemochore.github.io/oreillyDownloader/css/@warning.jpg')
+    .replace('../images/icon_general_note.png',       'https://anemochore.github.io/oreillyDownloader/css/@note.jpg');
+
+    if(oldSrc != newSrc) {
+      console.log(oldSrc, newSrc)
+      const figure = document.createElement('figure');
+      img.replaceWith(figure);
+      img.setAttribute('src', newSrc);
+
+      const figCaption = document.createElement('figureCaption');
+      let imgText= newSrc.split('/').pop().split('.')[0].toUpperCase();
+      if(imgText == '@WARNING') imgText = '@CAUTION';  //damn
+      imgText = `[${imgText.slice(1)}]`;
+      figCaption.textContent = imgText;
+      figure.appendChild(img);
+      figure.appendChild(figCaption);
+    }
+  }
 
   //download
+  newHtml = doc.documentElement.outerHTML;
   const fileName = `all.html`;
   const blob = new Blob([newHtml], {type: "data:attachment/text"});
   const fileLink = document.createElement('a');
