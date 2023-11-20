@@ -2,6 +2,7 @@ document.getElementById('fileInput').addEventListener('change', handleFileSelect
 
 const converter = new showdown.Converter();
 converter.setOption('customizedHeaderId', true);
+converter.setOption('literalMidWordUnderscores', true);
 
 let q;
 
