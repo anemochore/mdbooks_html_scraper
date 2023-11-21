@@ -172,14 +172,21 @@ function postFix() {
   //링크가 텍스트와 동일하면 링크 삭제
   const as = [...doc.querySelectorAll('a[href]')];
   for(const a of as) {
-    if(a.href == a.innerText) a.replaceWith(document.createTextNode(a.href));
+    if(a.href.replace(/\/$/, '') == a.innerText.replace(/\/$/, '')) {
+      console.debug('deleted link in', a);
+      a.replaceWith(document.createTextNode(a.href));
+    }
     else {
       //[text1]([_text2_](link)) 식의 잘못된 링크도 삭제
       const urlMatch = a.href.match(/\[_.+?_\]\((.+?)\)/);
       if(urlMatch) {
         console.debug('fixed link in', a);
-        if(a.innerHTML == a.innerText) a.replaceWith(document.createTextNode(`${a.innerText}(${urlMatch[1]})`));
-        else a.outerHTML = `${a.innerHTML}(${urlMatch[1]})`;
+        if(a.href.replace(/\/$/, '') == a.innerText.replace(/\/$/, '')) {
+          a.replaceWith(document.createTextNode(`${a.innerText}(${urlMatch[1]})`));
+        }
+        else {
+          a.outerHTML = `${a.innerHTML}(${urlMatch[1]})`;
+        }
       }
     }
   }
