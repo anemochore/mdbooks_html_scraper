@@ -18,7 +18,7 @@ function handleFileSelect(e) {
       console.log(file.name);
       q.set(file.name, converter.makeHtml(makeFootnotes(fixx(reader.result), i)));
       //q.set(file.name, makeFootnotes(fixx(reader.result), i));
-      if(q.size == fileNumber) downloadAndQuit();
+      if(q.size == fileNumber) postFix();
     }
     reader.readAsText(file);
   });
@@ -40,11 +40,11 @@ function fixx(str) {
   DICTS.set('\u200b', '');
   DICTS.set('\u2060', '');
 
-  //remove not-working italics
-  DICTS.set(/_\[(.+?)\]\((.+?)\)_/g, '\[_$1_\]\($2\)');
-  DICTS.set(/\[_(.+?)_\]\((.+?)\)/g, '$1');
-  DICTS.set(/\[(.+?)\]\((.+?)\)/g,   '$1');
-  //DICTS.set(/_(\S+?)_/g,              '<i>$1</i>');  //잘못되는 일이 너무 많다!
+  //remove not-working italics (오라일리 책에 애드온 적용한 원서 기반으로 작업했다고 가정)
+  DICTS.set(/_\[(.+?)\](\(.+?\))_/g, '[_$1_]$2');   //convert _[text](link)_ to [_text_](link)
+  //DICTS.set(/\[_(.+?)_\]\((.+?)\)/g, '$1');               //convert [_text_](link) to text
+  //DICTS.set(/\[(.+?)\]\((.+?)\)/g,   '$1');  //잘못되는 게 많아서...
+  //DICTS.set(/_(\S+?)_/g,              '<i>$1</i>');  //잘못되는 게 너무 많다!
 
   let newResult = str, oldResult = str;
   for(const [k,v] of DICTS.entries()) {
@@ -96,7 +96,7 @@ function makeFootnotes(str, chapterNumber) {
   return newStr;
 }
 
-function downloadAndQuit() {
+function postFix() {
   //const zip = new JSZip();
 
   //sort map
@@ -139,8 +139,6 @@ function downloadAndQuit() {
       }
     });
 
-    //const leftImage = p.querySelector('img');
-    //const newInnerHTML = p.innerHTML.replace(leftImage.outerHTML, '');
     p.outerHTML = `<hr><aside>${p.innerHTML}</aside><hr>`;
   }
 
@@ -157,7 +155,6 @@ function downloadAndQuit() {
     .replace('../images/icon_general_note.png',       'https://anemochore.github.io/oreillyDownloader/css/@note.jpg');
 
     if(oldSrc != newSrc) {
-      console.log(oldSrc, newSrc)
       const figure = document.createElement('figure');
       img.replaceWith(figure);
       img.setAttribute('src', newSrc);
@@ -172,8 +169,26 @@ function downloadAndQuit() {
     }
   }
 
+  //링크가 텍스트와 동일하면 링크 삭제
+  const as = [...doc.querySelectorAll('a[href]')];
+  for(const a of as) {
+    if(a.href == a.innerText) a.replaceWith(document.createTextNode(a.href));
+    else {
+      //[text1]([_text2_](link)) 식의 잘못된 링크도 삭제
+      const urlMatch = a.href.match(/\[_.+?_\]\((.+?)\)/);
+      if(urlMatch) {
+        console.debug('fixed link in', a);
+        if(a.innerHTML == a.innerText) a.replaceWith(document.createTextNode(`${a.innerText}(${urlMatch[1]})`));
+        else a.outerHTML = `${a.innerHTML}(${urlMatch[1]})`;
+      }
+    }
+  }
+
+  downloadAndQuit(doc.documentElement.outerHTML);
+}
+
+function downloadAndQuit(newHtml) {
   //download
-  newHtml = doc.documentElement.outerHTML;
   const fileName = `all.html`;
   const blob = new Blob([newHtml], {type: "data:attachment/text"});
   const fileLink = document.createElement('a');
