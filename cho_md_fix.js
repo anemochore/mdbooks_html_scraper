@@ -79,7 +79,7 @@ function makeFootnotes(str, chapterNumber) {
       let liStr = '';
       if(curNumber > 1) liStr = "</li>"
       liStr = liStr + `<li id="fn-${chapterNumber}-${curNumber}"><a href="#fnref-${chapterNumber}-${curNumber}">${fnRefStr}</a>`;
-      newStr = str.slice(0, curIdx) + offsetStr + liStr + str.slice(curIdx+fnRefStr.length);
+      newStr = str.slice(0, curIdx) + offsetStr + liStr + ': ' + converter.makeHtml(str.slice(curIdx+fnRefStr.length+2));
     }
     else {  //footnotes number(reference)
       const aStr = `<sup id="fnref-${chapterNumber}-${curNumber}"><a href="#fn-${chapterNumber}-${curNumber}">${fnRefStr}</a></sup>`;
