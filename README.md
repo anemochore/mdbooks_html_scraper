@@ -9,4 +9,4 @@ run on html-builded mdbooks page, eg, [https://github.com/rust-kr/doc.rust-kr.or
 
 # 2. cho_md_fix
 
-run on as a spa. open manually created md file(s) and fix common errors and then convert into one html (via [showdown](https://github.com/showdownjs/showdown)). run here: https://anemochore.github.io/mdbooks_html_scraper/cho_md_fix_._index.html
+run on as a spa. open manually created md file(s) and fix common errors and then convert into one html (via [showdown](https://github.com/showdownjs/showdown)). run here: https://anemochore.github.io/mdbooks_html_scraper/cho_md_fix_index.html
