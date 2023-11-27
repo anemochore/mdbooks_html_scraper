@@ -106,6 +106,7 @@
   //merge without <main>
   let merged =  `<head>
   <meta charset="utf-8">
+  <meta name="generator" content="mdbooks_html_scraper">
 ` + style + `</head>
 <body>
 ` + mains.map((el, i) => `<section id="${filenames[i]}">

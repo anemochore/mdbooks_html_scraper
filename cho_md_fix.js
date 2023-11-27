@@ -106,6 +106,7 @@ function postFix() {
   let newHtml = `<html>
 <head>
   <meta charset="utf-8" />
+  <meta name="generator" content="cho_md_fix">
   <style>
   img { max-width: 500px; }
 
